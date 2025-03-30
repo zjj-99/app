@@ -92,7 +92,24 @@
         const shareButton = document.getElementById('share-button');
         
         shareButton.addEventListener('click', () => {
-            window.location.href = 'qrcode.html';
+            // 获取当前URL
+            const currentUrl = window.location.href;
+            
+            // 显示一个简单的弹窗
+            alert('请复制以下链接分享给好友：\n' + currentUrl);
+            
+            // 如果浏览器支持分享API，也可以使用
+            if (navigator.share) {
+                navigator.share({
+                    title: '飞机大战游戏',
+                    text: '来玩这个有趣的飞机大战游戏！',
+                    url: currentUrl
+                }).then(() => {
+                    console.log('分享成功');
+                }).catch((error) => {
+                    console.log('分享失败:', error);
+                });
+            }
         });
     </script>
 </body>
