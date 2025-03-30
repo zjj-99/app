@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>飞机大战</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="飞机大战">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
+    <link rel="shortcut icon" href="img/icon-192.png">
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen" class="screen">
+            <h1>飞机大战</h1>
+            <button id="start-button">开始游戏</button>
+            <div id="install-app" class="hidden">
+                <p>添加到主屏幕以获得最佳体验</p>
+                <button id="install-button">安装应用</button>
+            </div>
+            <div id="share-game">
+                <button id="share-button" class="share-button">分享游戏</button>
+            </div>
+        </div>
+        
+        <div id="game-screen" class="screen hidden">
+            <div id="score">分数: <span id="score-value">0</span></div>
+            <div id="game-area"></div>
+        </div>
+        
+        <div id="game-over-screen" class="screen hidden">
+            <h2>游戏结束</h2>
+            <p>你的分数: <span id="final-score">0</span></p>
+            <button id="restart-button">重新开始</button>
+        </div>
+    </div>
+    
+    <script src="js/game.js"></script>
+    <script>
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
+
+        // 处理PWA安装
+        let deferredPrompt;
+        const installApp = document.getElementById('install-app');
+        const installButton = document.getElementById('install-button');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // 阻止Chrome 76及更早版本自动显示安装提示
+            e.preventDefault();
+            // 保存事件，以便稍后触发
+            deferredPrompt = e;
+            // 显示自定义安装按钮
+            installApp.classList.remove('hidden');
+        });
+
+        installButton.addEventListener('click', (e) => {
+            // 隐藏安装按钮
+            installApp.classList.add('hidden');
+            // 显示安装提示
+            deferredPrompt.prompt();
+            // 等待用户响应
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('用户已接受安装');
+                } else {
+                    console.log('用户已拒绝安装');
+                }
+                deferredPrompt = null;
+            });
+        });
+
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('应用已安装');
+        });
+        
+        // 分享游戏按钮
+        const shareButton = document.getElementById('share-button');
+        
+        shareButton.addEventListener('click', () => {
+            window.location.href = 'qrcode.html';
+        });
+    </script>
+</body>
+</html> 

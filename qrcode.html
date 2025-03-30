@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞机大战 - 安装二维码</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #4a69bd;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .qrcode-container {
+            margin: 20px auto;
+            padding: 15px;
+            background-color: white;
+            display: inline-block;
+        }
+        #qrcode {
+            margin: 0 auto;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4a69bd;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #1e3799;
+        }
+        .instructions {
+            margin-top: 20px;
+            text-align: left;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        .download-button {
+            background-color: #27ae60;
+            margin-top: 15px;
+        }
+        .download-button:hover {
+            background-color: #219653;
+        }
+        footer {
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        .back-button {
+            background-color: #e74c3c;
+            margin-top: 15px;
+        }
+        .back-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>飞机大战 - 安装二维码</h1>
+        
+        <div class="qrcode-container">
+            <div id="qrcode"></div>
+        </div>
+        
+        <button id="download-btn" class="download-button">下载二维码图片</button>
+        <button id="back-btn" class="back-button">返回游戏</button>
+        
+        <div class="instructions">
+            <h3>使用说明：</h3>
+            <ol>
+                <li>上方已自动生成当前游戏的安装二维码</li>
+                <li>点击"下载二维码图片"保存到设备</li>
+                <li>将二维码分享给好友</li>
+                <li>好友扫描二维码后，可在手机浏览器中打开游戏</li>
+                <li>通过浏览器的"添加到主屏幕"功能安装游戏</li>
+            </ol>
+        </div>
+    </div>
+    
+    <footer>
+        飞机大战 - 一个可安装的PWA游戏
+    </footer>
+    
+    <!-- 引入QRCode.js库 -->
+    <script>
+        // 动态加载QRCode.js
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js';
+        script.onload = initQRCode;
+        document.head.appendChild(script);
+        
+        function initQRCode() {
+            const downloadBtn = document.getElementById('download-btn');
+            const backBtn = document.getElementById('back-btn');
+            const qrcodeContainer = document.getElementById('qrcode');
+            
+            // 获取当前网站的根URL
+            const currentUrl = new URL(window.location.href);
+            const baseUrl = currentUrl.origin + currentUrl.pathname.replace('qrcode.html', '');
+            
+            // 自动生成当前网站的二维码
+            generateQRCode(baseUrl);
+            
+            downloadBtn.addEventListener('click', () => {
+                // 获取二维码Canvas元素
+                const canvas = qrcodeContainer.querySelector('canvas');
+                if (canvas) {
+                    // 创建下载链接
+                    const link = document.createElement('a');
+                    link.download = '飞机大战安装二维码.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } else {
+                    alert('生成二维码失败，请刷新页面重试');
+                }
+            });
+            
+            backBtn.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            function generateQRCode(url) {
+                new QRCode(qrcodeContainer, {
+                    text: url,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
