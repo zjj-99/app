@@ -21,261 +21,399 @@ const scoreValue = document.getElementById('score-value');
 const finalScore = document.getElementById('final-score');
 const gameArea = document.getElementById('game-area');
 
-// 初始化游戏
-function initGame() {
-    startButton.addEventListener('click', startGame);
-    restartButton.addEventListener('click', resetGame);
-    
-    // 创建飞机精灵的默认图像（临时替代）
-    createDefaultSprites();
-}
-
-// 创建默认精灵（用于在没有实际图片的情况下）
-function createDefaultSprites() {
-    // 创建玩家飞机的临时图像
-    const playerCanvas = document.createElement('canvas');
-    playerCanvas.width = 50;
-    playerCanvas.height = 50;
-    const playerCtx = playerCanvas.getContext('2d');
-    playerCtx.fillStyle = '#3498db';
-    playerCtx.beginPath();
-    playerCtx.moveTo(25, 0);
-    playerCtx.lineTo(50, 50);
-    playerCtx.lineTo(25, 40);
-    playerCtx.lineTo(0, 50);
-    playerCtx.closePath();
-    playerCtx.fill();
-    
-    // 设置玩家飞机图像
-    const playerStyle = document.createElement('style');
-    playerStyle.textContent = `.player { background-image: url(${playerCanvas.toDataURL()}); }`;
-    document.head.appendChild(playerStyle);
-    
-    // 创建敌机的临时图像
-    const enemyCanvas = document.createElement('canvas');
-    enemyCanvas.width = 40;
-    enemyCanvas.height = 40;
-    const enemyCtx = enemyCanvas.getContext('2d');
-    enemyCtx.fillStyle = '#e74c3c';
-    enemyCtx.beginPath();
-    enemyCtx.moveTo(20, 0);
-    enemyCtx.lineTo(40, 20);
-    enemyCtx.lineTo(20, 40);
-    enemyCtx.lineTo(0, 20);
-    enemyCtx.closePath();
-    enemyCtx.fill();
-    
-    // 设置敌机图像
-    const enemyStyle = document.createElement('style');
-    enemyStyle.textContent = `.enemy { background-image: url(${enemyCanvas.toDataURL()}); }`;
-    document.head.appendChild(enemyStyle);
-}
-
-// 开始游戏
-function startGame() {
-    gameStarted = true;
-    gameOver = false;
-    score = 0;
-    enemies = [];
-    bullets = [];
-    lastEnemySpawn = Date.now();
-    lastDifficultyIncrease = Date.now();
-    enemySpawnInterval = 1500;
-    
-    startScreen.classList.add('hidden');
-    gameScreen.classList.remove('hidden');
-    gameOverScreen.classList.add('hidden');
-    
-    // 创建玩家飞机
-    createPlayer();
-    
-    // 设置触摸事件处理
-    setupTouchControls();
-    
-    // 开始游戏循环
-    gameLoop = requestAnimationFrame(update);
-}
-
-// 创建玩家飞机
-function createPlayer() {
-    player = document.createElement('div');
-    player.className = 'player';
-    gameArea.appendChild(player);
-    
-    // 初始位置
-    player.style.left = (gameArea.clientWidth / 2 - 25) + 'px';
-    player.style.bottom = '50px';
-    
-    // 自动发射子弹
-    setInterval(() => {
-        if (gameStarted && !gameOver) {
-            fireBullet();
-        }
-    }, 300);
-}
-
-// 设置触摸控制
-function setupTouchControls() {
-    // 触摸移动控制飞机
-    document.addEventListener('touchmove', (e) => {
-        if (!gameStarted || gameOver) return;
+class Game {
+    constructor() {
+        this.gameArea = document.getElementById('game-area');
+        this.scoreElement = document.getElementById('score-value');
+        this.finalScoreElement = document.getElementById('final-score');
+        this.startScreen = document.getElementById('start-screen');
+        this.gameScreen = document.getElementById('game-screen');
+        this.gameOverScreen = document.getElementById('game-over-screen');
+        this.startButton = document.getElementById('start-button');
+        this.restartButton = document.getElementById('restart-button');
         
-        e.preventDefault(); // 阻止页面滚动
-        const touch = e.touches[0];
-        const gameAreaRect = gameArea.getBoundingClientRect();
+        this.score = 0;
+        this.level = 1;
+        this.player = null;
+        this.enemies = [];
+        this.bullets = [];
+        this.powerUps = [];
+        this.gameLoop = null;
+        this.isGameOver = false;
+        this.lastEnemySpawn = 0;
+        this.lastPowerUpSpawn = 0;
+        this.hasLaser = false;
         
-        // 计算触摸点在游戏区域内的位置
-        let x = touch.clientX - gameAreaRect.left - 25; // 25是飞机宽度的一半
-        
-        // 边界限制
-        x = Math.max(0, Math.min(x, gameAreaRect.width - 50));
-        
-        // 更新玩家位置
-        player.style.left = x + 'px';
-    });
-    
-    // 添加触摸开始事件
-    document.addEventListener('touchstart', (e) => {
-        if (!gameStarted || gameOver) return;
-        e.preventDefault();
-    });
-}
-
-// 发射子弹
-function fireBullet() {
-    const bullet = document.createElement('div');
-    bullet.className = 'bullet';
-    
-    // 从玩家飞机的位置发射
-    const playerRect = player.getBoundingClientRect();
-    const gameAreaRect = gameArea.getBoundingClientRect();
-    
-    const left = playerRect.left - gameAreaRect.left + playerRect.width / 2 - 2.5;
-    const bottom = (gameAreaRect.bottom - playerRect.top);
-    
-    bullet.style.left = left + 'px';
-    bullet.style.bottom = bottom + 'px';
-    
-    gameArea.appendChild(bullet);
-    bullets.push(bullet);
-}
-
-// 生成敌机
-function spawnEnemy() {
-    const enemy = document.createElement('div');
-    enemy.className = 'enemy';
-    
-    // 随机位置
-    const left = Math.random() * (gameArea.clientWidth - 40);
-    enemy.style.left = left + 'px';
-    enemy.style.top = '0px';
-    
-    gameArea.appendChild(enemy);
-    enemies.push(enemy);
-}
-
-// 更新游戏状态
-function update() {
-    if (!gameStarted || gameOver) return;
-    
-    const now = Date.now();
-    
-    // 生成敌机
-    if (now - lastEnemySpawn > enemySpawnInterval) {
-        spawnEnemy();
-        lastEnemySpawn = now;
+        this.init();
     }
     
-    // 增加游戏难度
-    if (now - lastDifficultyIncrease > difficultyInterval) {
-        if (enemySpawnInterval > 500) {
-            enemySpawnInterval -= 100;
-        }
-        lastDifficultyIncrease = now;
+    init() {
+        this.startButton.addEventListener('click', () => this.startGame());
+        this.restartButton.addEventListener('click', () => this.startGame());
     }
     
-    // 移动子弹
-    bullets.forEach((bullet, bulletIndex) => {
-        const currentBottom = parseFloat(bullet.style.bottom || '0');
-        bullet.style.bottom = (currentBottom + 5) + 'px';
+    startGame() {
+        this.score = 0;
+        this.level = 1;
+        this.enemies = [];
+        this.bullets = [];
+        this.powerUps = [];
+        this.isGameOver = false;
+        this.hasLaser = false;
         
-        // 移除超出屏幕的子弹
-        if (currentBottom > gameArea.clientHeight) {
-            bullet.remove();
-            bullets.splice(bulletIndex, 1);
-        }
-    });
+        this.scoreElement.textContent = this.score;
+        this.startScreen.classList.add('hidden');
+        this.gameOverScreen.classList.add('hidden');
+        this.gameScreen.classList.remove('hidden');
+        
+        this.player = new Player(this.gameArea);
+        this.gameLoop = setInterval(() => this.update(), 1000 / 60);
+        this.spawnEnemies();
+        this.spawnPowerUps();
+    }
     
-    // 移动敌机
-    enemies.forEach((enemy, enemyIndex) => {
-        const currentTop = parseFloat(enemy.style.top || '0');
-        enemy.style.top = (currentTop + 2) + 'px';
-        
-        // 检测敌机是否到达底部（玩家失败）
-        if (currentTop > gameArea.clientHeight - 40) {
-            endGame();
-            return;
+    spawnEnemies() {
+        const now = Date.now();
+        if (now - this.lastEnemySpawn > 2000 - (this.level * 100)) { // 随等级提高，敌人生成更快
+            const enemy = new Enemy(this.gameArea, this.level);
+            this.enemies.push(enemy);
+            this.lastEnemySpawn = now;
         }
+    }
+    
+    spawnPowerUps() {
+        const now = Date.now();
+        if (now - this.lastPowerUpSpawn > 10000) { // 每10秒可能生成一个道具
+            if (Math.random() < 0.3) { // 30%概率生成道具
+                const powerUp = new PowerUp(this.gameArea);
+                this.powerUps.push(powerUp);
+            }
+            this.lastPowerUpSpawn = now;
+        }
+    }
+    
+    update() {
+        if (this.isGameOver) return;
         
-        // 检测子弹和敌机的碰撞
-        bullets.forEach((bullet, bulletIndex) => {
-            if (checkCollision(bullet, enemy)) {
-                // 移除子弹和敌机
-                bullet.remove();
-                bullets.splice(bulletIndex, 1);
-                
+        this.player.update();
+        this.spawnEnemies();
+        this.spawnPowerUps();
+        
+        // 更新敌人
+        this.enemies.forEach((enemy, index) => {
+            enemy.update();
+            if (enemy.isOffScreen()) {
                 enemy.remove();
-                enemies.splice(enemyIndex, 1);
-                
-                // 增加分数
-                score += 10;
-                scoreValue.textContent = score;
+                this.enemies.splice(index, 1);
             }
         });
         
-        // 检测玩家和敌机的碰撞
-        if (player && checkCollision(player, enemy)) {
-            endGame();
-        }
-    });
-    
-    // 继续游戏循环
-    gameLoop = requestAnimationFrame(update);
-}
-
-// 碰撞检测
-function checkCollision(element1, element2) {
-    const rect1 = element1.getBoundingClientRect();
-    const rect2 = element2.getBoundingClientRect();
-    
-    return !(
-        rect1.right < rect2.left ||
-        rect1.left > rect2.right ||
-        rect1.bottom < rect2.top ||
-        rect1.top > rect2.bottom
-    );
-}
-
-// 游戏结束
-function endGame() {
-    gameOver = true;
-    cancelAnimationFrame(gameLoop);
-    
-    finalScore.textContent = score;
-    gameScreen.classList.add('hidden');
-    gameOverScreen.classList.remove('hidden');
-}
-
-// 重置游戏
-function resetGame() {
-    // 清除游戏区域
-    while (gameArea.firstChild) {
-        gameArea.removeChild(gameArea.firstChild);
+        // 更新子弹
+        this.bullets.forEach((bullet, index) => {
+            bullet.update();
+            if (bullet.isOffScreen()) {
+                bullet.remove();
+                this.bullets.splice(index, 1);
+            }
+        });
+        
+        // 更新道具
+        this.powerUps.forEach((powerUp, index) => {
+            powerUp.update();
+            if (powerUp.isOffScreen()) {
+                powerUp.remove();
+                this.powerUps.splice(index, 1);
+            }
+        });
+        
+        // 检测碰撞
+        this.checkCollisions();
+        
+        // 检查升级
+        this.checkLevelUp();
     }
     
-    // 重新开始
-    startGame();
+    checkCollisions() {
+        // 子弹与敌人碰撞
+        this.bullets.forEach((bullet, bulletIndex) => {
+            this.enemies.forEach((enemy, enemyIndex) => {
+                if (this.isColliding(bullet, enemy)) {
+                    bullet.remove();
+                    this.bullets.splice(bulletIndex, 1);
+                    enemy.takeDamage(bullet.damage);
+                    if (enemy.isDestroyed()) {
+                        enemy.remove();
+                        this.enemies.splice(enemyIndex, 1);
+                        this.score += 100;
+                        this.scoreElement.textContent = this.score;
+                    }
+                }
+            });
+        });
+        
+        // 玩家与敌人碰撞
+        this.enemies.forEach((enemy, index) => {
+            if (this.isColliding(this.player, enemy)) {
+                this.gameOver();
+            }
+        });
+        
+        // 玩家与道具碰撞
+        this.powerUps.forEach((powerUp, index) => {
+            if (this.isColliding(this.player, powerUp)) {
+                powerUp.remove();
+                this.powerUps.splice(index, 1);
+                if (powerUp.type === 'laser') {
+                    this.hasLaser = true;
+                    this.player.activateLaser();
+                }
+            }
+        });
+    }
+    
+    checkLevelUp() {
+        const newLevel = Math.floor(this.score / 1000) + 1;
+        if (newLevel > this.level) {
+            this.level = newLevel;
+            this.player.levelUp();
+        }
+    }
+    
+    isColliding(obj1, obj2) {
+        return obj1.x < obj2.x + obj2.width &&
+               obj1.x + obj1.width > obj2.x &&
+               obj1.y < obj2.y + obj2.height &&
+               obj1.y + obj1.height > obj2.y;
+    }
+    
+    gameOver() {
+        this.isGameOver = true;
+        clearInterval(this.gameLoop);
+        this.finalScoreElement.textContent = this.score;
+        this.gameScreen.classList.add('hidden');
+        this.gameOverScreen.classList.remove('hidden');
+    }
 }
 
-// 初始化游戏
-window.addEventListener('load', initGame); 
+class Player {
+    constructor(gameArea) {
+        this.gameArea = gameArea;
+        this.element = document.createElement('div');
+        this.element.className = 'player';
+        this.gameArea.appendChild(this.element);
+        
+        this.width = 50;
+        this.height = 50;
+        this.x = (gameArea.offsetWidth - this.width) / 2;
+        this.y = gameArea.offsetHeight - this.height - 20;
+        this.speed = 5;
+        this.level = 1;
+        this.damage = 10;
+        this.hasLaser = false;
+        
+        this.updatePosition();
+        this.setupControls();
+    }
+    
+    setupControls() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                this.moveLeft();
+            } else if (e.key === 'ArrowRight') {
+                this.moveRight();
+            } else if (e.key === 'ArrowUp') {
+                this.moveUp();
+            } else if (e.key === 'ArrowDown') {
+                this.moveDown();
+            } else if (e.key === ' ') {
+                this.shoot();
+            }
+        });
+    }
+    
+    moveLeft() {
+        this.x = Math.max(0, this.x - this.speed);
+        this.updatePosition();
+    }
+    
+    moveRight() {
+        this.x = Math.min(this.gameArea.offsetWidth - this.width, this.x + this.speed);
+        this.updatePosition();
+    }
+    
+    moveUp() {
+        this.y = Math.max(0, this.y - this.speed);
+        this.updatePosition();
+    }
+    
+    moveDown() {
+        this.y = Math.min(this.gameArea.offsetHeight - this.height - 20, this.y + this.speed);
+        this.updatePosition();
+    }
+    
+    updatePosition() {
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+    }
+    
+    shoot() {
+        if (this.hasLaser) {
+            this.activateLaser();
+            this.hasLaser = false;
+            this.element.classList.remove('laser-active');
+        } else {
+            const bullet = new Bullet(this.gameArea, this.x + this.width / 2, this.y, this.damage);
+            game.bullets.push(bullet);
+        }
+    }
+    
+    levelUp() {
+        this.level++;
+        this.damage += 5;
+        this.element.className = `player level-${this.level}`;
+    }
+    
+    activateLaser() {
+        const laser = new Laser(this.gameArea, this.x + this.width / 2);
+        game.bullets.push(laser);
+    }
+    
+    update() {
+        // 可以添加其他更新逻辑
+    }
+}
+
+class Enemy {
+    constructor(gameArea, level) {
+        this.gameArea = gameArea;
+        this.element = document.createElement('div');
+        this.element.className = `enemy level-${level}`;
+        this.gameArea.appendChild(this.element);
+        
+        this.width = 40;
+        this.height = 40;
+        this.x = Math.random() * (gameArea.offsetWidth - this.width);
+        this.y = -this.height;
+        this.speed = 2 + (level * 0.5); // 随等级提高速度
+        this.health = 20 + (level * 10); // 随等级提高血量
+        this.maxHealth = this.health;
+        
+        this.updatePosition();
+    }
+    
+    update() {
+        this.y += this.speed;
+        this.updatePosition();
+    }
+    
+    updatePosition() {
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+    }
+    
+    takeDamage(damage) {
+        this.health -= damage;
+        const healthPercent = (this.health / this.maxHealth) * 100;
+        this.element.style.setProperty('--health', `${healthPercent}%`);
+    }
+    
+    isDestroyed() {
+        return this.health <= 0;
+    }
+    
+    isOffScreen() {
+        return this.y > this.gameArea.offsetHeight;
+    }
+    
+    remove() {
+        this.element.remove();
+    }
+}
+
+class Bullet {
+    constructor(gameArea, x, y, damage) {
+        this.gameArea = gameArea;
+        this.element = document.createElement('div');
+        this.element.className = 'bullet';
+        this.gameArea.appendChild(this.element);
+        
+        this.width = 4;
+        this.height = 10;
+        this.x = x - this.width / 2;
+        this.y = y;
+        this.speed = 7;
+        this.damage = damage;
+        
+        this.updatePosition();
+    }
+    
+    update() {
+        this.y -= this.speed;
+        this.updatePosition();
+    }
+    
+    updatePosition() {
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+    }
+    
+    isOffScreen() {
+        return this.y < -this.height;
+    }
+    
+    remove() {
+        this.element.remove();
+    }
+}
+
+class Laser extends Bullet {
+    constructor(gameArea, x) {
+        super(gameArea, x, 0, 999);
+        this.element.className = 'laser';
+        this.width = 8;
+        this.height = this.gameArea.offsetHeight;
+        this.speed = 15;
+        this.updatePosition();
+    }
+}
+
+class PowerUp {
+    constructor(gameArea) {
+        this.gameArea = gameArea;
+        this.element = document.createElement('div');
+        this.element.className = 'power-up laser';
+        this.gameArea.appendChild(this.element);
+        
+        this.width = 30;
+        this.height = 30;
+        this.x = Math.random() * (gameArea.offsetWidth - this.width);
+        this.y = -this.height;
+        this.speed = 3;
+        this.type = 'laser';
+        
+        this.updatePosition();
+    }
+    
+    update() {
+        this.y += this.speed;
+        this.updatePosition();
+    }
+    
+    updatePosition() {
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+    }
+    
+    isOffScreen() {
+        return this.y > this.gameArea.offsetHeight;
+    }
+    
+    remove() {
+        this.element.remove();
+    }
+}
+
+let game;
+window.addEventListener('load', () => {
+    game = new Game();
+}); 

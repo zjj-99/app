@@ -5,25 +5,23 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #121212;
-    color: white;
-    height: 100vh;
+    margin: 0;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    touch-action: manipulation;
+    min-height: 100vh;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
 #game-container {
     position: relative;
     width: 100%;
     max-width: 400px;
-    height: 80vh;
-    background-color: #000;
+    height: 600px;
+    background: #000;
     overflow: hidden;
-    border-radius: 8px;
-    box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
 }
 
 .screen {
@@ -34,7 +32,7 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    color: #fff;
     text-align: center;
 }
 
@@ -56,21 +54,19 @@ h2 {
 }
 
 button {
-    background-color: #4a69bd;
+    padding: 10px 20px;
+    font-size: 18px;
+    background: #4CAF50;
     color: white;
     border: none;
-    padding: 12px 24px;
-    font-size: 18px;
-    border-radius: 50px;
+    border-radius: 5px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 10px rgba(74, 105, 189, 0.7);
-    margin-bottom: 15px;
+    margin: 10px;
+    transition: background 0.3s;
 }
 
 button:hover {
-    background-color: #1e3799;
-    transform: scale(1.05);
+    background: #45a049;
 }
 
 #start-button {
@@ -119,43 +115,140 @@ button:hover {
 
 #score {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 18px;
-    z-index: 10;
+    top: 20px;
+    left: 20px;
+    color: #fff;
+    font-size: 20px;
+    z-index: 2;
 }
 
 #game-area {
+    position: relative;
     width: 100%;
     height: 100%;
-    position: relative;
+    background: #000;
+    overflow: hidden;
 }
 
 .player {
     position: absolute;
     width: 50px;
     height: 50px;
-    background-image: url('../img/player.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    z-index: 5;
+    background: #4CAF50;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    z-index: 2;
 }
 
 .enemy {
     position: absolute;
     width: 40px;
     height: 40px;
-    background-image: url('../img/enemy.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    z-index: 3;
+    background: #f44336;
+    clip-path: polygon(50% 100%, 100% 50%, 50% 0%, 0% 50%);
 }
 
 .bullet {
     position: absolute;
-    width: 5px;
-    height: 15px;
-    background-color: #f1c40f;
+    width: 4px;
+    height: 10px;
+    background: #ffeb3b;
     border-radius: 2px;
-    z-index: 2;
+}
+
+/* 玩家升级样式 */
+.player.level-2 {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+}
+
+.player.level-3 {
+    background: linear-gradient(45deg, #4ecdc4, #45b7af);
+    box-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+}
+
+.player.level-4 {
+    background: linear-gradient(45deg, #96e6a1, #d4fc79);
+    box-shadow: 0 0 20px rgba(150, 230, 161, 0.5);
+}
+
+/* 敌人升级样式 */
+.enemy.level-2 {
+    background: linear-gradient(45deg, #ff9f43, #ffb067);
+    box-shadow: 0 0 15px rgba(255, 159, 67, 0.3);
+}
+
+.enemy.level-3 {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
+}
+
+.enemy.level-4 {
+    background: linear-gradient(45deg, #4ecdc4, #45b7af);
+    box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+}
+
+/* 敌人血量条 */
+.enemy {
+    position: relative;
+}
+
+.enemy::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #ddd;
+    border-radius: 2px;
+}
+
+.enemy::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 0;
+    width: var(--health, 100%);
+    height: 3px;
+    background: #4CAF50;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* 激光样式 */
+.laser {
+    background: linear-gradient(90deg, transparent, #ff0, transparent);
+    box-shadow: 0 0 20px #ff0;
+    animation: laserPulse 0.5s infinite;
+}
+
+@keyframes laserPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 道具样式 */
+.power-up {
+    background: radial-gradient(circle at center, #fff 0%, #ff0 100%);
+    box-shadow: 0 0 15px #ff0;
+    animation: powerUpFloat 2s infinite;
+}
+
+@keyframes powerUpFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+/* 激光激活状态 */
+.player.laser-active {
+    box-shadow: 0 0 30px #ff0;
+    animation: playerLaserPulse 1s infinite;
+}
+
+@keyframes playerLaserPulse {
+    0% { box-shadow: 0 0 30px #ff0; }
+    50% { box-shadow: 0 0 50px #ff0; }
+    100% { box-shadow: 0 0 30px #ff0; }
 } 
